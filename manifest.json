@@ -2,7 +2,7 @@
   "name": "Hyrox Training Log",
   "short_name": "Training Log",
   "description": "Training plan, gym log, weight, InBody scans and meals in one place.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
