@@ -886,7 +886,7 @@ function vMeals(){
   const labels=[],kc=[],pr=[];
   for(let i=6;i>=0;i--){const x=addDays(d,-i),q=totals(x);labels.push(DAYS[dow(x)]);kc.push(q.kcal);pr.push(q.protein);}
   const tin=(n,l,v,max)=>`<label>${l}<input name="${n}" type="number" inputmode="numeric" min="0" max="${max}" value="${v==null?'':esc(v)}" placeholder="Auto"></label>`;
-  return `<div class="stack"><section class="card"><div class="weeknav" style="margin:0"><button class="btn sm" data-a="mealPrev" aria-label="Previous day">‹</button>
+  return `<div class="stack">${mealWeek()}<section class="card"><div class="weeknav" style="margin:0"><button class="btn sm" data-a="mealPrev" aria-label="Previous day">‹</button>
     <div><div class="eyebrow">${fmt(d,{weekday:'long'})}</div><b>${dayLabel}, ${fmt(d)}</b></div>
     <button class="btn sm" data-a="mealNext" aria-label="Next day"${d>=t?' disabled':''}>›</button></div></section>
     ${calCard(d,'Calories remaining')}
@@ -905,7 +905,7 @@ function evRow(e,first){
   return `<div class="row${n<0?' past':''}"><div class="grow"><b>${esc(e.name)}</b> <span class="chip" style="--c:var(--t-rest)">${esc(e.type)}</span>
     <div class="muted" style="font-size:13px">${fmt(e.date,{weekday:'short',day:'numeric',month:'short',year:'numeric'})} · ${rel(e.date)}</div>
     ${first&&n>=0&&e.type==='Fitness Game'?`<div style="font-size:13px;margin-top:4px"><b>${phase(n).name}.</b> ${phase(n).tip}</div>`:''}
-    <label style="margin-top:8px;display:block"><span class="note">Notes</span><textarea rows="2" maxlength="800" data-change="evNote" data-id="${esc(e.id)}" placeholder="Goal, course, gear, plan" style="width:100%;box-sizing:border-box;font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line,#ccc);background:transparent;color:inherit;resize:vertical">${esc(e.note||'')}</textarea></label></div>
+    <details class="evnote" style="margin-top:8px"${ui.evOpen&&ui.evOpen[e.id]?' open':''} data-evn="${esc(e.id)}"><summary class="note" style="cursor:pointer">Notes${e.note?' · saved':''}</summary><textarea rows="3" maxlength="800" data-change="evNote" data-id="${esc(e.id)}" placeholder="Goal, course, gear, plan" style="margin-top:6px">${esc(e.note||'')}</textarea></details></div>
     <button class="btn sm ghost danger" data-a="delEvent" data-v="${esc(e.id)}" aria-label="Remove ${esc(e.name)}">Remove</button></div>`;
 }
 function racePlanCard(){
@@ -1316,7 +1316,8 @@ function backupCard(){
   if(mode!=='local')return '';
   return `<section class="card"><h2>Backup</h2><p class="muted" style="font-size:14px">Your data is stored only on this device. Download a backup now and then. You can restore it on a new phone or after clearing browser data.</p>
     <div class="actions" style="margin-top:12px"><button class="btn primary" data-a="exportData">Download backup</button></div>
-    <label style="margin-top:12px">Restore from a backup file<input type="file" accept=".json,application/json" data-change="importData"></label>${ui.bk?`<p class="ok">${esc(ui.bk)}</p>`:''}</section>`;
+    <label style="margin-top:12px">Restore from a backup file (replaces everything)<input type="file" accept=".json,application/json" data-change="importData"></label>
+    <label style="margin-top:12px">Add data from a Claude file (keeps what you have)<input type="file" accept=".json,application/json" data-change="mergeData"></label>${ui.bk?`<p class="ok">${esc(ui.bk)}</p>`:''}</section>`;
 }
 function wipeCard(){
   return `<section class="card"><h2>Clear logged data</h2><p class="muted" style="font-size:14px">Removes everything you have logged: weigh-ins, InBody scans, meals, runs and workouts, gym sets, check-ins and done marks, race results and splits. Your training plan, gym program, events, goals and targets are kept. This cannot be undone.</p>
@@ -1329,14 +1330,29 @@ function syncCard(){
     <div class="actions" style="margin-top:12px"><button class="btn primary" data-a="fixSync">Turn on syncing</button><button class="btn" data-a="openPerms">Open permissions</button></div></section>`;
 }
 const fmtH=h=>{const m=Math.round(h*60);return Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m';};
+const vdt=h=>h>=8?['Great','good']:h>=7?['Good','good']:h>=6?['A bit short','warn']:['Too short','bad'];
+const dayStrip=(sel,act,valFn,subFn,colFn)=>{
+  const t=todayStr(); let h='';
+  for(let i=6;i>=0;i--){const x=addDays(t,-i),v=valFn(x),on=x===sel;
+    h+=`<button type="button" data-a="${act}" data-v="${x}" aria-pressed="${on}" style="flex:1;min-width:0;padding:6px 2px;border-radius:10px;border:1px solid ${on?'var(--accent)':'var(--line)'};background:${on?'var(--accent-soft)':'transparent'};color:inherit;font:inherit;cursor:pointer;text-align:center">
+      <div class="note" style="margin:0">${DAYS[dow(x)]}</div><div style="font-size:12px">${+x.slice(8)}</div>
+      <div style="font-weight:700;font-size:12px;margin-top:2px;color:${v==null?'var(--muted,#888)':colFn(v)}">${v==null?'–':subFn(v)}</div></button>`;}
+  return `<div style="display:flex;gap:4px;margin:10px 0 4px">${h}</div>`;
+};
 function sleepCard(){
-  const t=todayStr(); let d=null,c=null;
-  for(let i=0;i<=3;i++){const x=addDays(t,-i),q=S.checkins[x];if(q&&q.sleep!=null){d=x;c=q;break;}}
-  if(!c)return '<section class="card"><h2>Sleep</h2><p class="muted" style="font-size:14px;margin:0">No sleep logged yet. Send Claude a screenshot of your sleep and it will show here.</p></section>';
-  const h=c.sleep, v=h>=8?['Great','good']:h>=7?['Good','good']:h>=6?['A bit short','warn']:['Too short','bad'];
+  const t=todayStr(); const sl=x=>{const q=S.checkins[x];return q&&q.sleep!=null?q.sleep:null;};
+  let d=ui.sleepDate;
+  if(!d||d>t||d<addDays(t,-6)){d=null;for(let i=0;i<=3;i++){const x=addDays(t,-i);if(sl(x)!=null){d=x;break;}}if(!d)d=t;}
+  const c=S.checkins[d]||{}, h=sl(d);
+  const week=[];for(let i=0;i<7;i++){const v=sl(addDays(t,-i));if(v!=null)week.push(v);}
+  const avg=week.length?week.reduce((a,b)=>a+b,0)/week.length:null, good=week.filter(v=>v>=7).length;
+  const strip=dayStrip(d,'sleepDay',x=>sl(x),v=>String(Math.round(v*10)/10)+'h',v=>'var(--'+vdt(v)[1]+')');
+  const wk=avg!=null?`<p class="note" style="margin-top:6px">Last 7 days: average ${fmtH(avg)}, ${good} of ${week.length} night${week.length>1?'s':''} at 7 h or more. Aim for 7 to 9 h.</p>`:'<p class="note" style="margin-top:6px">Aim for 7 to 9 h.</p>';
+  const lbl=d===t?'':', '+fmt(d,{weekday:'short',day:'numeric',month:'short'});
+  if(h==null)return `<section class="card"><h2>Sleep${lbl}</h2>${strip}<p class="muted" style="font-size:14px;margin:8px 0 0">${week.length?'No sleep logged for this day.':'No sleep logged yet. Send Claude a screenshot of your sleep and it will show here.'}</p>${wk}</section>`;
+  const v=vdt(h);
   const msg=h>=7?'Enough for hard training today.':h>=6?'Slightly short. Train as planned, keep it controlled and sleep earlier tonight.':'Under 6 h. Your plan says cut the gym first and keep any run easy.';
-  const sl=[];for(let i=0;i<7;i++){const q=S.checkins[addDays(t,-i)];if(q&&q.sleep!=null)sl.push(q.sleep);}
-  const avg=sl.length>1?sl.reduce((a,b)=>a+b,0)/sl.length:null;
+  const msg2=d===t?msg:(h>=7?'That night was enough.':h>=6?'That night was a bit short.':'That night was too short.');
   let stages='';
   if(c.deep!=null&&c.light!=null&&c.rem!=null){
     const tot=c.deep+c.light+c.rem||1, pd=Math.round(c.deep/tot*100), pr=Math.round(c.rem/tot*100), pl=100-pd-pr;
@@ -1345,10 +1361,15 @@ function sleepCard(){
       <div class="note" style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap"><span>Deep ${fmtH(c.deep)} (${pd}%)</span><span>Light ${fmtH(c.light)}</span><span>REM ${fmtH(c.rem)} (${pr}%)</span></div>
       <p class="note" style="margin-top:6px">${ok?'Deep and REM sleep look healthy.':pd<13?'Deep sleep is low, so recovery may be weaker.':'REM sleep is low.'}</p>`;
   }
-  return `<section class="card"><div class="dh" style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0">Sleep${d===t?'':', '+fmt(d)}</h2><b style="color:var(--${v[1]})">${v[0]}</b></div>
+  return `<section class="card"><div class="dh" style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0">Sleep${lbl}</h2><b style="color:var(--${v[1]})">${v[0]}</b></div>
     <div class="tn" style="font-size:34px;font-weight:800;margin:6px 0 2px">${fmtH(h)}</div>
-    <p style="margin:0;font-size:14px">${msg}</p>
-    ${avg!=null?`<p class="note" style="margin-top:6px">7-day average ${fmtH(avg)} over ${sl.length} nights. Aim for 7 to 9 h.</p>`:'<p class="note" style="margin-top:6px">Aim for 7 to 9 h.</p>'}${stages}</section>`;
+    <p style="margin:0;font-size:14px">${msg2}</p>${strip}${wk}${stages}</section>`;
+}
+function mealWeek(){
+  const t=todayStr(), g=tgts(); let n=0,kc=0,pr=0;
+  for(let i=0;i<7;i++){const q=totals(addDays(t,-i));if(q.n){n++;kc+=q.kcal;pr+=q.protein;}}
+  const strip=dayStrip(ui.mealDate,'mealDay',x=>{const q=totals(x);return q.n?q.kcal:null;},v=>String(Math.round(v)),v=>v>g.kcal*1.1?'var(--bad)':v>=g.kcal*0.8?'var(--good)':'var(--warn)');
+  return `<section class="card"><h2>This week</h2>${strip}<p class="note" style="margin-top:6px">${n?`Average ${Math.round(kc/n)} kcal and ${Math.round(pr/n)} g protein over ${n} logged day${n>1?'s':''}. Goal ${g.kcal} kcal, ${g.protein} g protein. Tap a day to open its diary.`:'Tap a day to open its diary. Days with food show their calories.'}</p></section>`;
 }
 const VIEWS={today:vToday,plan:vPlan,gym:vGym,weight:vWeight,meals:vMeals,events:vEvents,coach:vCoach};
 
@@ -1491,6 +1512,8 @@ document.addEventListener('click',function(e){
     case 'useTw':S.targets.goalKg=+v;touch({core:true});break;
     case 'delMeal':{const m=S.meals.find(x=>x.id===v);S.meals=S.meals.filter(x=>x.id!==v);if(m)touch({months:[m.date.slice(0,7)]});break;}
     case 'delEvent':S.events=S.events.filter(x=>x.id!==v);touch({core:true});break;
+    case 'sleepDay':ui.sleepDate=v;break;
+    case 'mealDay':ui.mealDate=v;ui.draft=null;break;
     case 'mealPrev':ui.mealDate=addDays(ui.mealDate,-1);ui.draft=null;break;
     case 'mealNext':if(ui.mealDate<t){ui.mealDate=addDays(ui.mealDate,1);ui.draft=null;}break;
     case 'prefill':{const m=recentFoods()[+v];if(m)ui.draft={slot:m.slot,name:m.name,kcal:m.kcal,protein:m.protein,carbs:m.carbs,fat:m.fat,sugar:m.sugar};break;}
@@ -1514,6 +1537,7 @@ document.addEventListener('click',function(e){
   }
   render();
 });
+document.addEventListener('toggle',function(e){const d=e.target;if(d&&d.dataset&&d.dataset.evn){ui.evOpen=ui.evOpen||{};ui.evOpen[d.dataset.evn]=d.open;}},true);
 document.addEventListener('change',function(e){
   const el=e.target, ds=el.dataset||{}, t=todayStr();
   if(ds.ai){const it=ui.aiMeal.items&&ui.aiMeal.items[+ds.i];if(it){it[ds.ai]=ds.ai==='name'?el.value:Math.max(0,num(el.value)||0);}return;}
@@ -1532,6 +1556,18 @@ document.addEventListener('change',function(e){
     S.goals=el.value.slice(0,1500); touch({core:true});
   }else if(k==='aiText'){ui.aiMeal.text=el.value;}
   else if(k==='impUnit'){ui.imp.unit=el.value;}
+  else if(k==='mergeData'){const f=el.files&&el.files[0];if(f)f.text().then(txt=>{try{const o=JSON.parse(txt);if(!o||typeof o!=='object'||!o.addon)throw new Error('bad');
+    const n={w:0,s:0,m:0,b:0,d:0,a:0},ms=new Set();
+    (o.weights||[]).forEach(x=>{if(x&&x.date&&x.kg>0){S.weights=S.weights.filter(w=>w.date!==x.date);S.weights.push({date:x.date,kg:Math.round(x.kg*10)/10});n.w++;}});
+    Object.keys(o.checkins||{}).forEach(d=>{S.checkins[d]=Object.assign({},S.checkins[d]||{},o.checkins[d]);n.s++;});
+    (o.meals||[]).forEach(x=>{if(!x||!x.date||!x.name)return;const dup=S.meals.some(m=>m.date===x.date&&m.slot===x.slot&&m.name===x.name&&m.kcal===Math.round(+x.kcal||0));if(dup)return;
+      S.meals.push({id:uid(),date:x.date,slot:SLOTS.indexOf(x.slot)>=0?x.slot:'Snack',name:String(x.name).slice(0,80),kcal:Math.round(+x.kcal||0),protein:Math.round(+x.protein||0),carbs:x.carbs==null?null:Math.round(+x.carbs),fat:x.fat==null?null:Math.round(+x.fat),sugar:x.sugar==null?null:Math.round(+x.sugar)});ms.add(x.date.slice(0,7));n.m++;});
+    (o.body||[]).forEach(x=>{if(x&&x.date){S.body=S.body.filter(b=>b.date!==x.date);S.body.push(x);n.b++;}});
+    Object.keys(o.done||{}).forEach(d=>{if(o.done[d]){S.done[d]=true;n.d++;}});
+    (o.acts||[]).forEach(x=>{if(x&&x.d&&!S.acts.some(a=>a.k===x.k)){S.acts.push(x);n.a++;}});
+    ui.bk='Added: '+[n.w&&n.w+' weigh-in',n.s&&n.s+' check-in/sleep',n.m&&n.m+' meal',n.b&&n.b+' body scan',n.d&&n.d+' done mark',n.a&&n.a+' workout'].filter(Boolean).join(', ')+'.';
+    if(!n.w&&!n.s&&!n.m&&!n.b&&!n.d&&!n.a)ui.bk='Nothing new in that file.';
+    touch({core:true,months:Array.from(ms)});}catch(e){ui.bk='That file is not a Claude data file.';}render();});}
   else if(k==='importData'){const f=el.files&&el.files[0];if(f)f.text().then(txt=>{try{const o=JSON.parse(txt);if(!o||typeof o!=='object'||!o.v)throw new Error('bad');applyLoaded(o,Array.isArray(o.meals)?o.meals:[]);ui.bk='Backup restored.';touch({core:true});}catch(e){ui.bk='That file is not a valid backup.';}render();});}
   else if(k==='scanFile'){const f=el.files&&el.files[0];if(f)readScan(f);}
   else if(k==='actFile'){const f=el.files&&el.files[0];if(f)importFile(f);}
