@@ -1,0 +1,16 @@
+{
+  "name": "Hyrox Training Log",
+  "short_name": "Training Log",
+  "description": "Training plan, gym log, weight, InBody scans and meals in one place.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1F4D2B",
+  "theme_color": "#1F4D2B",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
