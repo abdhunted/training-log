@@ -764,7 +764,7 @@ function vToday(){
   const check=`<section class="card"><h2>Check-in</h2><div class="form">
     ${inp('sleep','Sleep (h)',0,14,0.5,ci.sleep)}${inp('energy','Energy 1 to 10',1,10,1,ci.energy)}${inp('soreness','Soreness 1 to 10',1,10,1,ci.soreness)}</div>
     <p class="note" style="margin-top:12px">Your plan says to cut gym first when sleep is under 6 h or soreness is high. The coach tab reads these.</p></section>`;
-  return `<div class="stack">${count}${sess}${sleepCard()}${tiles}${calCard(t,'Calories remaining')}${week}${syncCard()}</div>`
+  return `<div class="stack">${count}${sess}${sleepCard()}${tiles}${calCard(t,'Calories remaining')}${week}${backupCard()}</div>`
 }
 function importCard(){
   const im=ui.imp, TYS=['Run','Ride','Swim','Strength','Walk','Other'];
@@ -1352,7 +1352,7 @@ const VIEWS={today:vToday,plan:vPlan,gym:vGym,weight:vWeight,meals:vMeals,events
 function renderNav(){
   $('#navin').innerHTML=TABS.map(x=>`<button data-a="tab" data-v="${x[0]}"${ui.tab===x[0]?' aria-current="page"':''}>${svg(x[0],22)}<span>${x[1]}</span></button>`).join('');
 }
-const FOLDS={today:[],plan:['Log a run or workout','Need more weeks?'],gym:['Schedule','Weekly volume, kg'],
+const FOLDS={today:['Backup'],plan:['Log a run or workout','Need more weeks?'],gym:['Schedule','Weekly volume, kg'],
   weight:['Log weight','Goals','Recent weigh-ins','Body fat, %','Skeletal muscle, kg','Add from an InBody photo','Add an InBody scan','Scan history'],
   meals:['Calories, 7 days','Protein, 7 days'],
   events:['Add an event','Past','HYROX KL race plan','Station splits','Hyrox race format'],
