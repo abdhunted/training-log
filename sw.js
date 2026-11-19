@@ -1,5 +1,5 @@
 // Offline cache for the Training Log. Bump VERSION when you replace index.html so phones pick up the update.
-const VERSION='v5';
+const VERSION='v6';
 const CORE=['./','manifest.json','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'];
 const clean=res=>res.redirected?res.blob().then(b=>new Response(b,{status:200,headers:res.headers})):Promise.resolve(res);
 self.addEventListener('install',e=>{e.waitUntil(caches.open('app-'+VERSION).then(c=>Promise.all(CORE.map(u=>fetch(u,{cache:'reload'}).then(clean).then(r=>c.put(u,r))))).then(()=>self.skipWaiting()));});

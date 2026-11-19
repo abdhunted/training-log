@@ -273,7 +273,8 @@ const TYPES={run:'Run',strength:'Strength',stations:'Stations',sim:'Hyrox sim',r
 const TYPE_VAR={run:'--t-run',strength:'--t-strength',stations:'--t-stations',sim:'--t-sim',recovery:'--t-recovery',rest:'--t-rest',swim:'--t-swim',bike:'--t-bike'};
 const TEMPLATE_TYPES=['run','strength','stations','sim','recovery','rest','swim','bike'];
 const SLOTS=['Breakfast','Lunch','Dinner','Snack','Around training'];
-const EVTYPES=['Hyrox','Half Ironman','Race','Test day','Other'];
+const EVTYPES=['Fitness Game','Triathlon','Race','Body Recomposition','Other'];
+const EVMAP={'Hyrox':'Fitness Game','Half Ironman':'Triathlon','Test day':'Body Recomposition'};
 const STATIONS=['SkiErg','Sled Push','Sled Pull','Burpee Broad Jumps','Rowing','Farmers Carry','Sandbag Lunges','Wall Balls'];
 const TABS=[['today','Today'],['plan','Plan'],['gym','Gym'],['weight','Weight'],['meals','Meals'],['events','Events'],['coach','Coach']];
 const WEEKS=[
@@ -344,7 +345,7 @@ function defaultPlan(){return [
   {type:'sim',title:'Half simulation',notes:'4 x (1 km run + station) at race pace.'},
   {type:'run',title:'Easy run, 45 min',notes:'Conversational pace. Zone 2.'}
 ];}
-const klEvent=()=>({id:uid(),name:'HYROX KL Singles',date:'2026-12-10',type:'Hyrox'});
+const klEvent=()=>({id:uid(),name:'HYROX KL Singles',date:'2026-12-10',type:'Fitness Game'});
 const isKL=e=>/HYROX KL/i.test(e.name);
 function freshState(){return {v:2,targets:{kcal:2300,protein:160,carbs:null,fat:null,sugar:null,goalKg:null},goals:GOAL_DEFAULT,plan:defaultPlan(),extra:{},results:{},splits:{},events:[klEvent()],weights:[],meals:[],acts:[],strava:[],done:{},checkins:{},gym:defGym(),glogs:{},body:[]};}
 let MIG=false;
@@ -354,6 +355,7 @@ function normalize(x){
   s.targets=Object.assign(d.targets,(x&&x.targets)||{});
   if(!Array.isArray(s.plan)||s.plan.length!==7)s.plan=defaultPlan();
   ['events','weights','meals','acts','strava'].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[];});
+  s.events.forEach(e=>{if(e&&EVMAP[e.type])e.type=EVMAP[e.type];});
   ['done','checkins','extra','results','splits'].forEach(k=>{if(!s[k]||typeof s[k]!=='object'||Array.isArray(s[k]))s[k]={};});
   if(typeof s.goals!=='string')s.goals=GOAL_DEFAULT;
   if(!s.gym||!Array.isArray(s.gym.sessions)||!Array.isArray(s.gym.days)||!Array.isArray(s.gym.weekNames))s.gym=defGym();
@@ -902,7 +904,7 @@ function evRow(e,first){
   const n=diffDays(e.date,todayStr());
   return `<div class="row${n<0?' past':''}"><div class="grow"><b>${esc(e.name)}</b> <span class="chip" style="--c:var(--t-rest)">${esc(e.type)}</span>
     <div class="muted" style="font-size:13px">${fmt(e.date,{weekday:'short',day:'numeric',month:'short',year:'numeric'})} · ${rel(e.date)}</div>
-    ${first&&n>=0&&e.type==='Hyrox'?`<div style="font-size:13px;margin-top:4px"><b>${phase(n).name}.</b> ${phase(n).tip}</div>`:''}</div>
+    ${first&&n>=0&&e.type==='Fitness Game'?`<div style="font-size:13px;margin-top:4px"><b>${phase(n).name}.</b> ${phase(n).tip}</div>`:''}</div>
     <button class="btn sm ghost danger" data-a="delEvent" data-v="${esc(e.id)}" aria-label="Remove ${esc(e.name)}">Remove</button></div>`;
 }
 function racePlanCard(){
@@ -924,7 +926,7 @@ function racePlanCard(){
 function vEvents(){
   const t=todayStr(), up=S.events.filter(e=>e.date>=t).sort(byDate), past=S.events.filter(e=>e.date<t).sort(byDate).reverse();
   return `<div class="stack"><section class="card"><h2>Add an event</h2><form class="form" data-form="event">
-    <label>Name<input name="name" maxlength="60" placeholder="Half Ironman" required></label>
+    <label>Name<input name="name" maxlength="60" placeholder="Triathlon" required></label>
     <label>Date<input name="date" type="date" min="${t}" required></label>
     <label>Type<select name="type">${EVTYPES.map(x=>`<option>${x}</option>`).join('')}</select></label>
     <div class="wide"><button class="btn primary" type="submit">Add event</button></div></form></section>
